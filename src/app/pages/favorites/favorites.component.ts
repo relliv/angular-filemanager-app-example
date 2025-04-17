@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FileService } from '../../services/file.service';
 import { FileItem, FileType, SortOption, ViewMode } from '../../models/file.model';
 import { FileListComponent } from '../../components/file-list/file-list.component';
@@ -12,6 +13,7 @@ import { FileActionsComponent } from '../../components/file-actions/file-actions
   standalone: true,
   imports: [
     CommonModule,
+    BrowserAnimationsModule,
     FileListComponent,
     FileGridComponent,
     FileActionsComponent

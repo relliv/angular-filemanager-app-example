@@ -1,13 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule, ActivatedRoute } from '@angular/router';
-import { FileType } from '../../models/file.model';
+import { Router, RouterModule } from '@angular/router';
+import { FileType, FileItem } from '../../models/file.model';
 import { FileService } from '../../services/file.service';
+import { FolderTreeComponent } from '../folder-tree/folder-tree.component';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FolderTreeComponent],
   template: `
     <aside class="sidebar">
       <nav class="sidebar-nav">
@@ -59,18 +60,11 @@ import { FileService } from '../../services/file.service';
         
         <div class="sidebar-section">
           <h3 class="sidebar-heading">Folders</h3>
-          <ul class="sidebar-menu folder-menu">
-            <li class="sidebar-menu-item" *ngFor="let folder of rootFolders">
-              <a 
-                [routerLink]="['/folder', folder.id]" 
-                routerLinkActive="active" 
-                class="sidebar-link"
-              >
-                <span class="material-icons" [ngClass]="getFolderIconClass(folder.name)">folder</span>
-                <span class="sidebar-text">{{ folder.name }}</span>
-              </a>
-            </li>
-          </ul>
+          <app-folder-tree
+            [folders]="allFolders"
+            [selectedId]="currentFolderId"
+            (nodeSelect)="onFolderSelect($event)"
+          ></app-folder-tree>
         </div>
         
         <div class="sidebar-section sidebar-footer">
@@ -193,22 +187,6 @@ import { FileService } from '../../services/file.service';
       color: var(--neutral-600);
     }
     
-    .folder-documents {
-      color: var(--primary-500);
-    }
-    
-    .folder-pictures {
-      color: var(--accent-500);
-    }
-    
-    .folder-music {
-      color: var(--warning-500);
-    }
-    
-    .folder-downloads {
-      color: var(--success-500);
-    }
-    
     @media (max-width: 768px) {
       .sidebar {
         width: 100%;
@@ -245,7 +223,6 @@ import { FileService } from '../../services/file.service';
       
       .sidebar-divider,
       .sidebar-heading,
-      .folder-menu,
       .storage-info {
         display: none;
       }
@@ -253,7 +230,8 @@ import { FileService } from '../../services/file.service';
   `]
 })
 export class SidebarComponent implements OnInit {
-  rootFolders: any[] = [];
+  allFolders: any[] = [];
+  currentFolderId: string | null = null;
   storagePercentage: number = 65;
   usedStorage: string = '6.5 GB';
   totalStorage: string = '10 GB';
@@ -264,23 +242,20 @@ export class SidebarComponent implements OnInit {
   ) {}
   
   ngOnInit(): void {
-    this.loadRootFolders();
-  }
-  
-  loadRootFolders(): void {
-    this.fileService.getFilesInFolder(null).subscribe(folderContent => {
-      this.rootFolders = folderContent.items.filter(item => item.type === FileType.FOLDER);
+    this.loadAllFolders();
+    
+    this.fileService.getCurrentFolderId().subscribe(id => {
+      this.currentFolderId = id;
     });
   }
   
-  getFolderIconClass(folderName: string): string {
-    const normalizedName = folderName.toLowerCase();
-    
-    if (normalizedName.includes('document')) return 'folder-documents';
-    if (normalizedName.includes('picture') || normalizedName.includes('image') || normalizedName.includes('photo')) return 'folder-pictures';
-    if (normalizedName.includes('music') || normalizedName.includes('audio') || normalizedName.includes('sound')) return 'folder-music';
-    if (normalizedName.includes('download')) return 'folder-downloads';
-    
-    return '';
+  loadAllFolders(): void {
+    this.fileService.getFilesInFolder(null).subscribe(folderContent => {
+      this.allFolders = folderContent.items;
+    });
+  }
+  
+  onFolderSelect(folder: FileItem): void {
+    this.router.navigate(['/folder', folder.id]);
   }
 }

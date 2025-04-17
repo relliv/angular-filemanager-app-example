@@ -1,11 +1,26 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FileItem } from '../../models/file.model';
+import { animate, style, transition, trigger } from '@angular/animations';
+import { FolderSelectDialogComponent } from '../folder-select-dialog/folder-select-dialog.component';
+import { FileService } from '../../services/file.service';
 
 @Component({
   selector: 'app-file-actions',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FolderSelectDialogComponent],
+  animations: [
+    trigger('slideIn', [
+      transition(':enter', [
+        style({ transform: 'translateY(100%)', opacity: 0 }),
+        animate('200ms ease-out', style({ transform: 'translateY(0)', opacity: 1 }))
+      ]),
+      transition(':leave', [
+        style({ transform: 'translateY(0)', opacity: 1 }),
+        animate('200ms ease-in', style({ transform: 'translateY(100%)', opacity: 0 }))
+      ])
+    ])
+  ],
   template: `
     <div class="file-actions-container" [@slideIn]="selectedFiles.length">
       <div class="file-actions-content">
@@ -46,7 +61,7 @@ import { FileItem } from '../../models/file.model';
           
           <button 
             class="action-btn" 
-            (click)="onMoveFiles()"
+            (click)="showMoveDialog()"
           >
             <span class="material-icons">drive_file_move</span>
             <span class="btn-text">Move</span>
@@ -70,6 +85,13 @@ import { FileItem } from '../../models/file.model';
         </div>
       </div>
     </div>
+
+    <app-folder-select-dialog
+      *ngIf="showFolderSelect"
+      [folders]="allFolders"
+      (close)="closeMoveDialog()"
+      (select)="onMoveFiles($event)"
+    ></app-folder-select-dialog>
   `,
   styles: [`
     .file-actions-container {
@@ -191,6 +213,15 @@ export class FileActionsComponent {
   @Output() copyFiles = new EventEmitter<string | null>();
   @Output() toggleFavorite = new EventEmitter<FileItem>();
   
+  showFolderSelect = false;
+  allFolders: FileItem[] = [];
+  
+  constructor(private fileService: FileService) {
+    this.fileService.getFilesInFolder(null).subscribe(folderContent => {
+      this.allFolders = folderContent.items;
+    });
+  }
+  
   onClearSelection(): void {
     this.clearSelection.emit();
   }
@@ -211,10 +242,17 @@ export class FileActionsComponent {
     this.deleteFiles.emit();
   }
   
-  onMoveFiles(): void {
-    // In a real app, this would open a folder picker dialog
-    // For demo purposes, we'll just move to the root folder
-    this.moveFiles.emit(null);
+  showMoveDialog(): void {
+    this.showFolderSelect = true;
+  }
+  
+  closeMoveDialog(): void {
+    this.showFolderSelect = false;
+  }
+  
+  onMoveFiles(targetFolder: FileItem): void {
+    this.moveFiles.emit(targetFolder.id);
+    this.showFolderSelect = false;
   }
   
   onCopyFiles(): void {

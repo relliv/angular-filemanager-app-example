@@ -10,6 +10,7 @@ export class FileService {
   private mockData: FileItem[] = [];
   private currentFolderId = new BehaviorSubject<string | null>(null);
   private selectedFiles = new BehaviorSubject<FileItem[]>([]);
+  private openTabs = new BehaviorSubject<FileItem[]>([]);
   
   constructor() {
     this.initMockData();
@@ -561,5 +562,26 @@ export class FileService {
   
   getCurrentFolderId(): Observable<string | null> {
     return this.currentFolderId.asObservable();
+  }
+
+  // Add new methods for tab management
+  getOpenTabs(): Observable<FileItem[]> {
+    return this.openTabs.asObservable();
+  }
+  
+  addTab(folder: FileItem): void {
+    const currentTabs = this.openTabs.value;
+    if (!currentTabs.some(tab => tab.id === folder.id)) {
+      this.openTabs.next([...currentTabs, folder]);
+    }
+  }
+  
+  removeTab(folder: FileItem): void {
+    const currentTabs = this.openTabs.value;
+    this.openTabs.next(currentTabs.filter(tab => tab.id !== folder.id));
+  }
+  
+  clearTabs(): void {
+    this.openTabs.next([]);
   }
 }
