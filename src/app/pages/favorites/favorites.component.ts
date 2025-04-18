@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FileService } from '../../services/file.service';
 import { FileItem, FileType, SortOption, ViewMode } from '../../models/file.model';
 import { FileListComponent } from '../../components/file-list/file-list.component';
@@ -13,7 +12,6 @@ import { FileActionsComponent } from '../../components/file-actions/file-actions
   standalone: true,
   imports: [
     CommonModule,
-    BrowserAnimationsModule,
     FileListComponent,
     FileGridComponent,
     FileActionsComponent
@@ -27,14 +25,14 @@ import { FileActionsComponent } from '../../components/file-actions/file-actions
           <div class="view-toggle">
             <button 
               class="view-toggle-btn" 
-              [class.active]="viewMode === 'list'"
+              [class.active]="viewMode === ViewMode.LIST"
               (click)="setViewMode(ViewMode.LIST)"
             >
               <span class="material-icons">view_list</span>
             </button>
             <button 
               class="view-toggle-btn" 
-              [class.active]="viewMode === 'grid'"
+              [class.active]="viewMode === ViewMode.GRID"
               (click)="setViewMode(ViewMode.GRID)"
             >
               <span class="material-icons">grid_view</span>
@@ -59,7 +57,7 @@ import { FileActionsComponent } from '../../components/file-actions/file-actions
       <div class="favorites-content" *ngIf="!loading; else loadingTpl">
         <div *ngIf="favoriteFiles.length; else noFavoritesTpl">
           <app-file-list 
-            *ngIf="viewMode === 'list'"
+            *ngIf="viewMode === ViewMode.LIST"
             [files]="sortedFiles"
             [selectedFiles]="selectedFiles"
             (fileClick)="onFileClick($event)"
@@ -68,7 +66,7 @@ import { FileActionsComponent } from '../../components/file-actions/file-actions
           ></app-file-list>
           
           <app-file-grid
-            *ngIf="viewMode === 'grid'"
+            *ngIf="viewMode === ViewMode.GRID"
             [files]="sortedFiles"
             [selectedFiles]="selectedFiles"
             (fileClick)="onFileClick($event)"
@@ -237,8 +235,8 @@ import { FileActionsComponent } from '../../components/file-actions/file-actions
 export class FavoritesComponent implements OnInit {
   favoriteFiles: FileItem[] = [];
   loading: boolean = true;
-  public ViewMode: typeof ViewMode = ViewMode;
   viewMode: ViewMode = ViewMode.GRID;
+  ViewMode = ViewMode; // Make enum available in template
   sortOption: SortOption = SortOption.NAME_ASC;
   selectedFiles: FileItem[] = [];
   

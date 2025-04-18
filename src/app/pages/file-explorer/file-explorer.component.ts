@@ -1,13 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FileService } from '../../services/file.service';
 import { FileItem, FileType, FolderContent, SortOption, ViewMode } from '../../models/file.model';
 import { BreadcrumbComponent } from '../../components/breadcrumb/breadcrumb.component';
 import { FileListComponent } from '../../components/file-list/file-list.component';
 import { FileGridComponent } from '../../components/file-grid/file-grid.component';
 import { FileActionsComponent } from '../../components/file-actions/file-actions.component';
-import { FolderTabsComponent } from '../../components/folder-tabs/folder-tabs.component';
 import { switchMap } from 'rxjs/operators';
 
 @Component({
@@ -15,22 +14,13 @@ import { switchMap } from 'rxjs/operators';
   standalone: true,
   imports: [
     CommonModule,
-    RouterModule,
     BreadcrumbComponent,
     FileListComponent,
     FileGridComponent,
-    FileActionsComponent,
-    FolderTabsComponent
+    FileActionsComponent
   ],
   template: `
     <div class="file-explorer">
-      <app-folder-tabs
-        [openTabs]="openTabs"
-        [activeTabId]="currentFolder?.id || null"
-        (tabClick)="onTabClick($event)"
-        (tabClose)="onTabClose($event)"
-      ></app-folder-tabs>
-      
       <div class="explorer-header">
         <app-breadcrumb [path]="currentFolder?.path || []" [folderName]="currentFolder?.name || 'Root'"></app-breadcrumb>
         
@@ -68,7 +58,7 @@ import { switchMap } from 'rxjs/operators';
       </div>
       
       <div class="explorer-content" *ngIf="!loading; else loadingTpl">
-        <div *ngIf="currentFolder && currentFolder.items.length; else emptyFolderTpl">
+        <div *ngIf="currentFolder?.items?.length; else emptyFolderTpl">
           <app-file-list 
             *ngIf="viewMode === ViewMode.LIST"
             [files]="sortedFiles"
@@ -76,6 +66,11 @@ import { switchMap } from 'rxjs/operators';
             (fileClick)="onFileClick($event)"
             (fileDoubleClick)="onFileDoubleClick($event)"
             (fileSelect)="onFileSelect($event)"
+            (copyFiles)="onCopyFile($event)"
+            (moveFiles)="onMoveFile($event)"
+            (renameFile)="onRenameFile($event)"
+            (deleteFiles)="onDeleteFiles()"
+            (toggleFavorite)="onToggleFavorite($event)"
           ></app-file-list>
           
           <app-file-grid
@@ -85,6 +80,11 @@ import { switchMap } from 'rxjs/operators';
             (fileClick)="onFileClick($event)"
             (fileDoubleClick)="onFileDoubleClick($event)"
             (fileSelect)="onFileSelect($event)"
+            (copyFiles)="onCopyFile($event)"
+            (moveFiles)="onMoveFile($event)"
+            (renameFile)="onRenameFile($event)"
+            (deleteFiles)="onDeleteFiles()"
+            (toggleFavorite)="onToggleFavorite($event)"
           ></app-file-grid>
         </div>
         
@@ -276,7 +276,6 @@ export class FileExplorerComponent implements OnInit {
   ViewMode = ViewMode; // Make enum available in template
   sortOption: SortOption = SortOption.NAME_ASC;
   selectedFiles: FileItem[] = [];
-  openTabs: FileItem[] = [];
   
   get sortedFiles(): FileItem[] {
     if (!this.currentFolder) return [];
@@ -290,10 +289,6 @@ export class FileExplorerComponent implements OnInit {
   ) {}
   
   ngOnInit(): void {
-    this.fileService.getOpenTabs().subscribe(tabs => {
-      this.openTabs = tabs;
-    });
-    
     this.route.paramMap.pipe(
       switchMap(params => {
         this.loading = true;
@@ -304,41 +299,7 @@ export class FileExplorerComponent implements OnInit {
       this.currentFolder = folderContent;
       this.loading = false;
       this.clearSelection();
-      
-      // Add current folder to tabs if it's not root
-      if (this.currentFolder && this.currentFolder.id !== 'root') {
-        const folder: FileItem = {
-          id: this.currentFolder.id,
-          name: this.currentFolder.name,
-          type: FileType.FOLDER,
-          size: 0,
-          parentId: this.currentFolder.parentId,
-          path: this.currentFolder.path,
-          modifiedDate: new Date(),
-          createdDate: new Date(),
-          favorite: false
-        };
-        this.fileService.addTab(folder);
-      }
     });
-  }
-  
-  onTabClick(tab: FileItem): void {
-    this.router.navigate(['/folder', tab.id]);
-  }
-  
-  onTabClose(tab: FileItem): void {
-    this.fileService.removeTab(tab);
-    
-    // If closing the current tab, navigate to the previous tab or root
-    if (this.currentFolder && tab.id === this.currentFolder.id) {
-      const remainingTabs = this.openTabs.filter(t => t.id !== tab.id);
-      if (remainingTabs.length > 0) {
-        this.router.navigate(['/folder', remainingTabs[remainingTabs.length - 1].id]);
-      } else {
-        this.router.navigate(['/']);
-      }
-    }
   }
   
   setViewMode(mode: ViewMode): void {
@@ -407,7 +368,7 @@ export class FileExplorerComponent implements OnInit {
     }
   }
   
-  onMoveFiles(targetFolderId: string | null): void {
+  onMoveFiles(targetFolderId: string|null): void {
     const ids = this.selectedFiles.map(file => file.id);
     this.fileService.moveItems(ids, targetFolderId).subscribe(() => {
       this.clearSelection();
@@ -415,7 +376,7 @@ export class FileExplorerComponent implements OnInit {
     });
   }
   
-  onCopyFiles(targetFolderId: string | null): void {
+  onCopyFiles(targetFolderId: string|null): void {
     const ids = this.selectedFiles.map(file => file.id);
     this.fileService.copyItems(ids, targetFolderId).subscribe(() => {
       this.clearSelection();
@@ -425,6 +386,20 @@ export class FileExplorerComponent implements OnInit {
   
   onToggleFavorite(file: FileItem): void {
     this.fileService.toggleFavorite(file.id).subscribe(() => {
+      this.refreshCurrentFolder();
+    });
+  }
+
+  onCopyFile(file: FileItem): void {
+    const ids = [file.id];
+    this.fileService.copyItems(ids, null).subscribe(() => {
+      this.refreshCurrentFolder();
+    });
+  }
+
+  onMoveFile(file: FileItem): void {
+    const ids = [file.id];
+    this.fileService.moveItems(ids, null).subscribe(() => {
       this.refreshCurrentFolder();
     });
   }

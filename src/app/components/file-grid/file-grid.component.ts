@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FileItem } from '../../models/file.model';
 import { FileSizePipe } from '../../pipes/file-size.pipe';
 import { FileIconComponent } from '../file-icon/file-icon.component';
+import { ContextMenuComponent, ContextMenuPosition } from '../context-menu/context-menu.component';
 
 @Component({
   selector: 'app-file-grid',
   standalone: true,
-  imports: [CommonModule, FileSizePipe, FileIconComponent],
+  imports: [CommonModule, FileSizePipe, FileIconComponent, ContextMenuComponent],
   template: `
     <div class="file-grid">
       <div 
@@ -16,6 +17,7 @@ import { FileIconComponent } from '../file-icon/file-icon.component';
         [class.selected]="isSelected(file)"
         (click)="onFileClick(file, $event)"
         (dblclick)="onFileDoubleClick(file, $event)"
+        (contextmenu)="onContextMenu($event, file)"
       >
         <div class="file-card-select">
           <div class="checkbox-container">
@@ -53,14 +55,21 @@ import { FileIconComponent } from '../file-icon/file-icon.component';
             <span *ngIf="file.type !== 'folder'">{{ file.size | fileSize }}</span>
           </div>
         </div>
-        
-        <div class="file-card-actions">
-          <button class="action-btn" (click)="onMoreOptions(file, $event)">
-            <span class="material-icons">more_vert</span>
-          </button>
-        </div>
       </div>
     </div>
+
+    <app-context-menu
+      [show]="showContextMenu"
+      [position]="contextMenuPosition"
+      [file]="contextMenuFile"
+      (close)="closeContextMenu()"
+      (open)="onContextMenuOpen()"
+      (copy)="onCopyFile(contextMenuFile!)"
+      (move)="onMoveFile(contextMenuFile!)"
+      (rename)="onRenameFile(contextMenuFile!)"
+      (delete)="onDeleteFile(contextMenuFile!)"
+      (toggleFavorite)="onToggleFavorite(contextMenuFile!)"
+    ></app-context-menu>
   `,
   styles: [`
     .file-grid {
@@ -188,35 +197,6 @@ import { FileIconComponent } from '../file-icon/file-icon.component';
       color: var(--neutral-600);
     }
     
-    .file-card-actions {
-      position: absolute;
-      top: var(--spacing-2);
-      right: var(--spacing-2);
-      opacity: 0;
-      transition: opacity var(--transition-fast);
-      z-index: 2;
-    }
-    
-    .file-card:hover .file-card-actions {
-      opacity: 1;
-    }
-    
-    .action-btn {
-      padding: var(--spacing-1);
-      color: var(--neutral-600);
-      background: rgba(255, 255, 255, 0.8);
-      border: none;
-      border-radius: var(--radius-sm);
-      backdrop-filter: blur(2px);
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-    
-    .action-btn:hover {
-      background-color: white;
-      color: var(--neutral-900);
-    }
-    
     @media (max-width: 768px) {
       .file-grid {
         grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -225,10 +205,6 @@ import { FileIconComponent } from '../file-icon/file-icon.component';
       
       .file-thumbnail {
         height: 80px;
-      }
-      
-      .file-card-actions {
-        opacity: 1;
       }
     }
   `]
@@ -240,7 +216,15 @@ export class FileGridComponent {
   @Output() fileClick = new EventEmitter<FileItem>();
   @Output() fileDoubleClick = new EventEmitter<FileItem>();
   @Output() fileSelect = new EventEmitter<FileItem>();
-  @Output() moreOptions = new EventEmitter<{file: FileItem, event: MouseEvent}>();
+  @Output() copyFiles = new EventEmitter<FileItem>();
+  @Output() moveFiles = new EventEmitter<FileItem>();
+  @Output() renameFile = new EventEmitter<FileItem>();
+  @Output() deleteFiles = new EventEmitter<FileItem>();
+  @Output() toggleFavorite = new EventEmitter<FileItem>();
+  
+  showContextMenu = false;
+  contextMenuPosition: ContextMenuPosition = { x: 0, y: 0 };
+  contextMenuFile: FileItem | null = null;
   
   isSelected(file: FileItem): boolean {
     return this.selectedFiles.some(f => f.id === file.id);
@@ -264,8 +248,51 @@ export class FileGridComponent {
     this.fileSelect.emit(file);
   }
   
-  onMoreOptions(file: FileItem, event: MouseEvent): void {
+  onContextMenu(event: MouseEvent, file: FileItem): void {
+    event.preventDefault();
     event.stopPropagation();
-    this.moreOptions.emit({ file, event });
+    
+    // If the file isn't selected, select it
+    if (!this.isSelected(file)) {
+      this.fileClick.emit(file);
+    }
+    
+    this.showContextMenu = true;
+    this.contextMenuPosition = {
+      x: event.clientX,
+      y: event.clientY
+    };
+    this.contextMenuFile = file;
+  }
+  
+  closeContextMenu(): void {
+    this.showContextMenu = false;
+    this.contextMenuFile = null;
+  }
+  
+  onContextMenuOpen(): void {
+    if (this.contextMenuFile) {
+      this.fileDoubleClick.emit(this.contextMenuFile);
+    }
+  }
+  
+  onCopyFile(file: FileItem): void {
+    this.copyFiles.emit(file);
+  }
+  
+  onMoveFile(file: FileItem): void {
+    this.moveFiles.emit(file);
+  }
+  
+  onRenameFile(file: FileItem): void {
+    this.renameFile.emit(file);
+  }
+  
+  onDeleteFile(file: FileItem): void {
+    this.deleteFiles.emit(file);
+  }
+  
+  onToggleFavorite(file: FileItem): void {
+    this.toggleFavorite.emit(file);
   }
 }

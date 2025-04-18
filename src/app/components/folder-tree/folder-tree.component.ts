@@ -8,6 +8,7 @@ interface TreeNode {
   children: TreeNode[];
   level: number;
   loading?: boolean;
+  hasSubFolders?: boolean;
 }
 
 @Component({
@@ -26,15 +27,17 @@ interface TreeNode {
           [class.selected]="node.item.id === selectedId"
           (click)="onNodeClick(node)"
         >
-          <button 
-            class="expand-btn"
-            *ngIf="hasChildren(node)"
-            (click)="toggleNode($event, node)"
-          >
-            <span class="material-icons expand-icon" [class.expanded]="node.expanded">
-              chevron_right
-            </span>
-          </button>
+          <div class="node-indicator" [class.has-children]="node.hasSubFolders">
+            <button 
+              *ngIf="node.hasSubFolders"
+              class="expand-btn"
+              (click)="toggleNode($event, node)"
+            >
+              <span class="material-icons expand-icon" [class.expanded]="node.expanded">
+                chevron_right
+              </span>
+            </button>
+          </div>
           
           <span class="material-icons folder-icon">
             {{ node.expanded ? 'folder_open' : 'folder' }}
@@ -47,7 +50,11 @@ interface TreeNode {
           </div>
         </div>
         
-        <div class="node-children" *ngIf="node.expanded">
+        <div 
+          class="node-children" 
+          *ngIf="node.expanded && node.hasSubFolders"
+          [@expandCollapse]="node.expanded ? 'expanded' : 'collapsed'"
+        >
           <app-folder-tree
             [folders]="getChildFolders(node)"
             [selectedId]="selectedId"
@@ -86,9 +93,19 @@ interface TreeNode {
       color: var(--primary-700);
     }
     
+    .node-indicator {
+      width: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .node-indicator.has-children {
+      cursor: pointer;
+    }
+    
     .expand-btn {
       padding: 2px;
-      margin-left: -4px;
       color: var(--neutral-600);
       transition: all var(--transition-fast);
       display: flex;
@@ -178,31 +195,46 @@ export class FolderTreeComponent {
   private buildTreeNodes() {
     this.treeNodes = this.folders
       .filter(folder => folder.type === FileType.FOLDER)
-      .map(folder => ({
-        item: folder,
-        expanded: false,
-        children: this.getInitialChildren(folder),
-        level: this.level
-      }));
+      .map(folder => {
+        const children = this.getInitialChildren(folder);
+        return {
+          item: folder,
+          expanded: false,
+          children,
+          level: this.level,
+          hasSubFolders: children.length > 0
+        };
+      });
   }
   
   private getInitialChildren(folder: FileItem): TreeNode[] {
-    return this.folders
+    const children = this.folders
       .filter(child => child.parentId === folder.id && child.type === FileType.FOLDER)
-      .map(child => ({
-        item: child,
-        expanded: false,
-        children: this.getInitialChildren(child),
-        level: this.level + 1
-      }));
+      .map(child => {
+        const subChildren = this.folders
+          .filter(subChild => subChild.parentId === child.id && subChild.type === FileType.FOLDER);
+        
+        return {
+          item: child,
+          expanded: false,
+          children: [],
+          level: this.level + 1,
+          hasSubFolders: subChildren.length > 0
+        };
+      });
+    
+    return children;
   }
   
   hasChildren(node: TreeNode): boolean {
-    return node.children.length > 0;
+    return node.hasSubFolders || false;
   }
   
   getChildFolders(node: TreeNode): FileItem[] {
-    return node.children.map(child => child.item);
+    return this.folders.filter(item => 
+      item.parentId === node.item.id && 
+      item.type === FileType.FOLDER
+    );
   }
   
   onNodeClick(node: TreeNode) {

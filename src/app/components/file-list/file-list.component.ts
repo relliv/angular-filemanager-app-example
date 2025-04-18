@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FileItem, FileType } from '../../models/file.model';
 import { FileSizePipe } from '../../pipes/file-size.pipe';
 import { FileIconComponent } from '../file-icon/file-icon.component';
+import { ContextMenuComponent, ContextMenuPosition } from '../context-menu/context-menu.component';
 
 @Component({
   selector: 'app-file-list',
   standalone: true,
-  imports: [CommonModule, FileSizePipe, FileIconComponent],
+  imports: [CommonModule, FileSizePipe, FileIconComponent, ContextMenuComponent],
   template: `
     <div class="file-list">
       <table class="file-table">
@@ -27,7 +28,6 @@ import { FileIconComponent } from '../file-icon/file-icon.component';
             <th class="name-col">Name</th>
             <th class="modified-col">Modified</th>
             <th class="size-col">Size</th>
-            <th class="actions-col"></th>
           </tr>
         </thead>
         <tbody>
@@ -37,6 +37,7 @@ import { FileIconComponent } from '../file-icon/file-icon.component';
             [class.selected]="isSelected(file)"
             (click)="onFileClick(file, $event)"
             (dblclick)="onFileDoubleClick(file, $event)"
+            (contextmenu)="onContextMenu($event, file)"
           >
             <td class="checkbox-col">
               <div class="checkbox-container">
@@ -59,17 +60,23 @@ import { FileIconComponent } from '../file-icon/file-icon.component';
             </td>
             <td class="modified-col">{{ file.modifiedDate | date:'medium' }}</td>
             <td class="size-col">{{ file.type === 'folder' ? '-' : (file.size | fileSize) }}</td>
-            <td class="actions-col">
-              <div class="file-actions">
-                <button class="action-icon" (click)="onMoreOptions(file, $event)">
-                  <span class="material-icons">more_horiz</span>
-                </button>
-              </div>
-            </td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <app-context-menu
+      [show]="showContextMenu"
+      [position]="contextMenuPosition"
+      [file]="contextMenuFile"
+      (close)="closeContextMenu()"
+      (open)="onContextMenuOpen()"
+      (copy)="onCopyFile(contextMenuFile!)"
+      (move)="onMoveFile(contextMenuFile!)"
+      (rename)="onRenameFile(contextMenuFile!)"
+      (delete)="onDeleteFile(contextMenuFile!)"
+      (toggleFavorite)="onToggleFavorite(contextMenuFile!)"
+    ></app-context-menu>
   `,
   styles: [`
     .file-list {
@@ -169,10 +176,6 @@ import { FileIconComponent } from '../file-icon/file-icon.component';
       width: 80px;
     }
     
-    .actions-col {
-      width: 50px;
-    }
-    
     .file-info {
       display: flex;
       align-items: center;
@@ -191,40 +194,10 @@ import { FileIconComponent } from '../file-icon/file-icon.component';
       color: var(--warning-500);
     }
     
-    .file-actions {
-      display: flex;
-      justify-content: flex-end;
-      opacity: 0;
-      transition: opacity var(--transition-fast);
-    }
-    
-    .file-row:hover .file-actions {
-      opacity: 1;
-    }
-    
-    .action-icon {
-      padding: var(--spacing-1);
-      color: var(--neutral-600);
-      background: transparent;
-      border: none;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-    
-    .action-icon:hover {
-      background-color: var(--neutral-200);
-      color: var(--neutral-900);
-    }
-    
     @media (max-width: 768px) {
       .modified-col,
       .size-col {
         display: none;
-      }
-      
-      .file-actions {
-        opacity: 1;
       }
     }
   `]
@@ -236,7 +209,15 @@ export class FileListComponent {
   @Output() fileClick = new EventEmitter<FileItem>();
   @Output() fileDoubleClick = new EventEmitter<FileItem>();
   @Output() fileSelect = new EventEmitter<FileItem>();
-  @Output() moreOptions = new EventEmitter<{file: FileItem, event: MouseEvent}>();
+  @Output() copyFiles = new EventEmitter<FileItem>();
+  @Output() moveFiles = new EventEmitter<FileItem>();
+  @Output() renameFile = new EventEmitter<FileItem>();
+  @Output() deleteFiles = new EventEmitter<FileItem>();
+  @Output() toggleFavorite = new EventEmitter<FileItem>();
+  
+  showContextMenu = false;
+  contextMenuPosition: ContextMenuPosition = { x: 0, y: 0 };
+  contextMenuFile: FileItem | null = null;
   
   get isAllSelected(): boolean {
     return this.files.length > 0 && this.selectedFiles.length === this.files.length;
@@ -280,8 +261,51 @@ export class FileListComponent {
     this.fileSelect.emit(file);
   }
   
-  onMoreOptions(file: FileItem, event: MouseEvent): void {
+  onContextMenu(event: MouseEvent, file: FileItem): void {
+    event.preventDefault();
     event.stopPropagation();
-    this.moreOptions.emit({ file, event });
+    
+    // If the file isn't selected, select it
+    if (!this.isSelected(file)) {
+      this.fileClick.emit(file);
+    }
+    
+    this.showContextMenu = true;
+    this.contextMenuPosition = {
+      x: event.clientX,
+      y: event.clientY
+    };
+    this.contextMenuFile = file;
+  }
+  
+  closeContextMenu(): void {
+    this.showContextMenu = false;
+    this.contextMenuFile = null;
+  }
+  
+  onContextMenuOpen(): void {
+    if (this.contextMenuFile) {
+      this.fileDoubleClick.emit(this.contextMenuFile);
+    }
+  }
+  
+  onCopyFile(file: FileItem): void {
+    this.copyFiles.emit(file);
+  }
+  
+  onMoveFile(file: FileItem): void {
+    this.moveFiles.emit(file);
+  }
+  
+  onRenameFile(file: FileItem): void {
+    this.renameFile.emit(file);
+  }
+  
+  onDeleteFile(file: FileItem): void {
+    this.deleteFiles.emit(file);
+  }
+  
+  onToggleFavorite(file: FileItem): void {
+    this.toggleFavorite.emit(file);
   }
 }

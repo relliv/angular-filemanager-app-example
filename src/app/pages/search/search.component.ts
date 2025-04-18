@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FileService } from '../../services/file.service';
-import { FileItem, SortOption, ViewMode, FileType } from '../../models/file.model';
+import { FileItem, FileType, SortOption, ViewMode } from '../../models/file.model';
 import { FileListComponent } from '../../components/file-list/file-list.component';
 import { FileGridComponent } from '../../components/file-grid/file-grid.component';
 import { FileActionsComponent } from '../../components/file-actions/file-actions.component';
@@ -38,14 +38,14 @@ import { FormsModule } from '@angular/forms';
           <div class="view-toggle">
             <button 
               class="view-toggle-btn" 
-              [class.active]="viewMode === 'list'"
+              [class.active]="viewMode === ViewMode.LIST"
               (click)="setViewMode(ViewMode.LIST)"
             >
               <span class="material-icons">view_list</span>
             </button>
             <button 
               class="view-toggle-btn" 
-              [class.active]="viewMode === 'grid'"
+              [class.active]="viewMode === ViewMode.GRID"
               (click)="setViewMode(ViewMode.GRID)"
             >
               <span class="material-icons">grid_view</span>
@@ -70,7 +70,7 @@ import { FormsModule } from '@angular/forms';
       <div class="search-content" *ngIf="!loading; else loadingTpl">
         <div *ngIf="searchResults.length; else noResultsTpl">
           <app-file-list 
-            *ngIf="viewMode === 'list'"
+            *ngIf="viewMode === ViewMode.LIST"
             [files]="sortedResults"
             [selectedFiles]="selectedFiles"
             (fileClick)="onFileClick($event)"
@@ -79,7 +79,7 @@ import { FormsModule } from '@angular/forms';
           ></app-file-list>
           
           <app-file-grid
-            *ngIf="viewMode === 'grid'"
+            *ngIf="viewMode === ViewMode.GRID"
             [files]="sortedResults"
             [selectedFiles]="selectedFiles"
             (fileClick)="onFileClick($event)"
@@ -288,8 +288,8 @@ export class SearchComponent implements OnInit {
   searchQuery: string = '';
   searchResults: FileItem[] = [];
   loading: boolean = true;
-  public ViewMode: typeof ViewMode = ViewMode;
   viewMode: ViewMode = ViewMode.GRID;
+  ViewMode = ViewMode; // Make enum available in template
   sortOption: SortOption = SortOption.NAME_ASC;
   selectedFiles: FileItem[] = [];
   

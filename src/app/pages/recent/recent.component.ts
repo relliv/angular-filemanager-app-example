@@ -25,14 +25,14 @@ import { FileActionsComponent } from '../../components/file-actions/file-actions
           <div class="view-toggle">
             <button 
               class="view-toggle-btn" 
-              [class.active]="viewMode === 'list'"
+              [class.active]="viewMode === ViewMode.LIST"
               (click)="setViewMode(ViewMode.LIST)"
             >
               <span class="material-icons">view_list</span>
             </button>
             <button 
               class="view-toggle-btn" 
-              [class.active]="viewMode === 'grid'"
+              [class.active]="viewMode === ViewMode.GRID"
               (click)="setViewMode(ViewMode.GRID)"
             >
               <span class="material-icons">grid_view</span>
@@ -57,7 +57,7 @@ import { FileActionsComponent } from '../../components/file-actions/file-actions
       <div class="recent-content" *ngIf="!loading; else loadingTpl">
         <div *ngIf="recentFiles.length; else noFilesTpl">
           <app-file-list 
-            *ngIf="viewMode === 'list'"
+            *ngIf="viewMode === ViewMode.LIST"
             [files]="sortedFiles"
             [selectedFiles]="selectedFiles"
             (fileClick)="onFileClick($event)"
@@ -66,7 +66,7 @@ import { FileActionsComponent } from '../../components/file-actions/file-actions
           ></app-file-list>
           
           <app-file-grid
-            *ngIf="viewMode === 'grid'"
+            *ngIf="viewMode === ViewMode.GRID"
             [files]="sortedFiles"
             [selectedFiles]="selectedFiles"
             (fileClick)="onFileClick($event)"
@@ -235,8 +235,8 @@ import { FileActionsComponent } from '../../components/file-actions/file-actions
 export class RecentComponent implements OnInit {
   recentFiles: FileItem[] = [];
   loading: boolean = true;
-  public ViewMode: typeof ViewMode = ViewMode;
   viewMode: ViewMode = ViewMode.GRID;
+  ViewMode = ViewMode; // Make enum available in template
   sortOption: SortOption = SortOption.DATE_DESC;
   selectedFiles: FileItem[] = [];
   

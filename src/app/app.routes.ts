@@ -3,7 +3,7 @@ import { Routes } from '@angular/router';
 export const appRoutes: Routes = [
   { 
     path: '', 
-    loadComponent: () => import('./pages/file-explorer/file-explorer.component').then(m => m.FileExplorerComponent) 
+    loadComponent: () => import('./pages/my-computer/my-computer.component').then(m => m.MyComputerComponent)
   },
   { 
     path: 'folder/:id', 

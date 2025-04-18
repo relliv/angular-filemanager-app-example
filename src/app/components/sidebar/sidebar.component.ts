@@ -20,8 +20,8 @@ import { FolderTreeComponent } from '../folder-tree/folder-tree.component';
               [routerLinkActiveOptions]="{exact: true}"
               class="sidebar-link"
             >
-              <span class="material-icons">folder</span>
-              <span class="sidebar-text">All Files</span>
+              <span class="material-icons">computer</span>
+              <span class="sidebar-text">My Computer</span>
             </a>
           </li>
           <li class="sidebar-menu-item">
@@ -230,15 +230,15 @@ import { FolderTreeComponent } from '../folder-tree/folder-tree.component';
   `]
 })
 export class SidebarComponent implements OnInit {
-  allFolders: any[] = [];
+  allFolders: FileItem[] = [];
   currentFolderId: string | null = null;
   storagePercentage: number = 65;
   usedStorage: string = '6.5 GB';
   totalStorage: string = '10 GB';
   
   constructor(
-    private fileService: FileService,
-    private router: Router
+    private router: Router,
+    private fileService: FileService
   ) {}
   
   ngOnInit(): void {
