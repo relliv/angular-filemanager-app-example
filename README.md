@@ -7,3 +7,7 @@ Simple file manager app built with Angular 17
 ## Preview
 
 ![Preview](preview.gif)
+
+## AI Assistance
+
+This project was created with the help of [Bolt](https://bolt.new/).
